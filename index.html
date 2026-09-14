@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#080c14" />
+  <title>Study & Class Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo-icon">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="20" fill="url(#logoGrad)"/>
+        <path d="M12 14h16M12 20h10M12 26h13" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="28" cy="24" r="5" fill="white" fill-opacity="0.9"/>
+        <path d="M26 24l1.5 1.5L30 22" stroke="#6366f1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs>
+          <linearGradient id="logoGrad" x1="0" y1="0" x2="40" y2="40">
+            <stop offset="0%" stop-color="#6366f1"/>
+            <stop offset="100%" stop-color="#06b6d4"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <h1>Study & Class<br/>Planner</h1>
+      <p>Plan • Study • Achieve</p>
+    </div>
+    <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">☰</button>
+  </div>
+
+  <nav class="nav-menu">
+    <button class="nav-btn active" data-view="dashboard">
+      <span class="nav-icon">⚡</span>
+      <span class="nav-label">Dashboard</span>
+    </button>
+    <button class="nav-btn" data-view="timetable">
+      <span class="nav-icon">📅</span>
+      <span class="nav-label">Timetable</span>
+    </button>
+    <button class="nav-btn" data-view="studywork">
+      <span class="nav-icon">📝</span>
+      <span class="nav-label">Study Work</span>
+    </button>
+    <button class="nav-btn" data-view="performance">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Performance</span>
+    </button>
+    <button class="nav-btn" data-view="weeks52">
+      <span class="nav-icon">🗓️</span>
+      <span class="nav-label">52 Weeks</span>
+    </button>
+    <button class="nav-btn" data-view="subjects">
+      <span class="nav-icon">📚</span>
+      <span class="nav-label">Subjects</span>
+    </button>
+    <button class="nav-btn" data-view="settings">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Data & Settings</span>
+    </button>
+  </nav>
+
+  <div class="sidebar-quote">
+    <p id="quoteText">"Small steps every day lead to big results."</p>
+  </div>
+</aside>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="main-content" id="mainContent">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span id="viewTitle" class="view-title">Dashboard</span>
+      <span id="currentDateDisplay" class="date-display"></span>
+    </div>
+    <div class="topbar-right">
+      <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Light / Dark Mode">
+        <span class="theme-icon" id="themeIcon">🌙</span>
+        <span class="theme-text" id="themeText">Dark</span>
+      </button>
+      <div class="exam-countdown" id="examCountdown">
+        <span class="countdown-label">A/L Exam</span>
+        <span class="countdown-value" id="countdownValue">-- days</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- LIVE SESSION BANNER -->
+  <div class="live-banner" id="liveBanner" style="display:none;">
+    <div class="live-dot"></div>
+    <span id="liveBannerText">Loading...</span>
+  </div>
+
+  <!-- ============ VIEW: DASHBOARD ============ -->
+  <section class="view active" id="view-dashboard">
+    <div class="dash-grid">
+
+      <!-- Stats Row -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-info">
+            <div class="stat-num" id="streakCount">0</div>
+            <div class="stat-label">Day Streak</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏱️</div>
+          <div class="stat-info">
+            <div class="stat-num" id="weekHours">0h</div>
+            <div class="stat-label">This Week</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-info">
+            <div class="stat-num" id="completedToday">0</div>
+            <div class="stat-label">Done Today</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-info">
+            <div class="stat-num" id="pendingTasks">0</div>
+            <div class="stat-label">Pending Tasks</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today's Schedule -->
+      <div class="dash-card today-card">
+        <div class="card-header">
+          <h3>📅 Today's Schedule</h3>
+          <button class="btn-sm" id="goToTimetableBtn">View Full →</button>
+        </div>
+        <div id="todaySchedule" class="today-list">
+          <p class="empty-msg">No sessions scheduled for today.</p>
+        </div>
+      </div>
+
+      <!-- Upcoming Sessions -->
+      <div class="dash-card">
+        <div class="card-header">
+          <h3>⏳ Upcoming</h3>
+        </div>
+        <div id="upcomingSessions" class="today-list">
+          <p class="empty-msg">Nothing coming up.</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="dash-card quick-actions-card">
+        <div class="card-header">
+          <h3>⚡ Quick Actions</h3>
+        </div>
+        <div class="quick-actions">
+          <button class="qa-btn" id="quickAddSession">+ Add Session</button>
+          <button class="qa-btn" id="quickStartPomodoro">🍅 Start Focus</button>
+          <button class="qa-btn" id="quickAddTask">+ Add Task</button>
+          <button class="qa-btn" id="quickAddPaper">+ Log Paper</button>
+        </div>
+      </div>
+
+      <!-- Mini Weekly Chart -->
+      <div class="dash-card chart-card">
+        <div class="card-header">
+          <h3>📊 This Week at a Glance</h3>
+        </div>
+        <canvas id="miniChart" width="400" height="160"></canvas>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ VIEW: TIMETABLE ============ -->
+  <section class="view" id="view-timetable">
+    <div class="tt-controls">
+      <div class="tt-filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="CLASS">Class</button>
+        <button class="filter-btn" data-filter="STUDY">Study</button>
+        <button class="filter-btn" data-filter="EXAM">Exam</button>
+      </div>
+      <div class="tt-actions">
+        <select id="subjectFilter" class="select-ctrl">
+          <option value="">All Subjects</option>
+        </select>
+        <button class="btn-primary" id="addEventBtn">+ Add Event</button>
+      </div>
+    </div>
+
+    <div class="timetable-wrapper">
+      <div class="timetable-grid" id="timetableGrid">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: STUDY WORK ============ -->
+  <section class="view" id="view-studywork">
+    <div class="sw-tabs">
+      <button class="sw-tab active" data-swtab="recordings">🎬 Recordings</button>
+      <button class="sw-tab" data-swtab="papers">📄 Past Papers</button>
+      <button class="sw-tab" data-swtab="tasks">✏️ Revision Tasks</button>
+    </div>
+
+    <!-- Recordings Panel -->
+    <div class="sw-panel active" id="panel-recordings">
+      <div class="panel-header">
+        <h3>Class Recordings</h3>
+        <button class="btn-primary" id="addRecordingBtn">+ Add Recording</button>
+      </div>
+      <div id="recordingsList" class="items-list"></div>
+    </div>
+
+    <!-- Past Papers Panel -->
+    <div class="sw-panel" id="panel-papers">
+      <div class="panel-header">
+        <h3>Past Papers & Model Papers</h3>
+        <button class="btn-primary" id="addPaperBtn">+ Add Paper</button>
+      </div>
+      <div id="papersList" class="items-list"></div>
+    </div>
+
+    <!-- Tasks Panel -->
+    <div class="sw-panel" id="panel-tasks">
+      <div class="panel-header">
+        <h3>Revision Tasks</h3>
+        <button class="btn-primary" id="addTaskBtn">+ Add Task</button>
+      </div>
+      <div class="task-filters">
+        <button class="filter-btn active" data-priority="">All</button>
+        <button class="filter-btn urgent" data-priority="urgent">🔴 Urgent</button>
+        <button class="filter-btn high" data-priority="high">🟡 High</button>
+        <button class="filter-btn normal" data-priority="normal">🟢 Normal</button>
+      </div>
+      <div id="tasksList" class="items-list"></div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: PERFORMANCE ============ -->
+  <section class="view" id="view-performance">
+    <div class="perf-grid">
+      <div class="perf-card">
+        <h3>📅 Daily Study Hours (This Week)</h3>
+        <canvas id="dailyChart" width="500" height="200"></canvas>
+      </div>
+      <div class="perf-card">
+        <h3>📚 Subject Breakdown</h3>
+        <canvas id="subjectChart" width="400" height="200"></canvas>
+        <div id="subjectLegend" class="chart-legend"></div>
+      </div>
+      <div class="perf-card">
+        <h3>🎯 Completion Rate</h3>
+        <div class="completion-stats" id="completionStats"></div>
+      </div>
+      <div class="perf-card streak-card">
+        <h3>🔥 Study Streak</h3>
+        <div class="streak-display">
+          <div class="streak-flame" id="streakFlame">🔥</div>
+          <div class="streak-number" id="streakBig">0</div>
+          <div class="streak-label">consecutive days</div>
+        </div>
+        <div class="streak-calendar" id="streakCalendar"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: 52 WEEKS ============ -->
+  <section class="view" id="view-weeks52">
+    <div class="weeks-header">
+      <h3>🗓️ 52-Week A/L Roadmap</h3>
+      <p>Track your weekly syllabus coverage across the entire year.</p>
+    </div>
+    <div class="weeks-grid" id="weeksGrid">
+      <!-- Rendered by JS -->
+    </div>
+  </section>
+
+  <!-- ============ VIEW: SUBJECTS ============ -->
+  <section class="view" id="view-subjects">
+    <div class="subj-header">
+      <h3>📚 Subjects</h3>
+      <button class="btn-primary" id="addSubjectBtn">+ Add Subject</button>
+    </div>
+    <div class="subjects-grid" id="subjectsGrid">
+      <!-- Rendered by JS -->
+    </div>
+  </section>
+
+  <!-- ============ VIEW: SETTINGS ============ -->
+  <section class="view" id="view-settings">
+    <div class="settings-grid">
+      <div class="settings-card">
+        <h3>🎨 Appearance & Theme</h3>
+        <p class="settings-desc">Switch between Dark Mode for night studying and Light Mode for daytime focus.</p>
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <button class="btn-primary" id="setDarkThemeBtn">🌙 Dark Mode</button>
+          <button class="btn-secondary" id="setLightThemeBtn">☀️ Light Mode</button>
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h3>⏳ Exam Countdown</h3>
+        <div class="form-group">
+          <label>A/L Exam Date</label>
+          <input type="date" id="examDateInput" class="input-ctrl" />
+        </div>
+        <div class="form-group">
+          <label>Exam Label (e.g. A/L 2027)</label>
+          <input type="text" id="examLabelInput" class="input-ctrl" placeholder="A/L 2027" />
+        </div>
+        <button class="btn-primary" id="saveExamDate">Save Exam Date</button>
+      </div>
+
+      <div class="settings-card">
+        <h3>🍅 Pomodoro Settings</h3>
+        <div class="form-group">
+          <label>Focus Duration (minutes)</label>
+          <input type="number" id="pomodoroFocus" class="input-ctrl" value="25" min="5" max="120"/>
+        </div>
+        <div class="form-group">
+          <label>Short Break (minutes)</label>
+          <input type="number" id="pomodoroShort" class="input-ctrl" value="5" min="1" max="30"/>
+        </div>
+        <div class="form-group">
+          <label>Long Break (minutes)</label>
+          <input type="number" id="pomodoroLong" class="input-ctrl" value="15" min="5" max="60"/>
+        </div>
+        <button class="btn-primary" id="savePomodoroSettings">Save Timer Settings</button>
+      </div>
+
+      <div class="settings-card">
+        <h3>💾 Data Backup</h3>
+        <p class="settings-desc">Export all your data as a JSON backup file, or import a previous backup.</p>
+        <div class="backup-actions">
+          <button class="btn-primary" id="exportDataBtn">📤 Export Data</button>
+          <label class="btn-secondary" for="importFileInput">📥 Import Data</label>
+          <input type="file" id="importFileInput" accept=".json" style="display:none" />
+        </div>
+      </div>
+
+      <div class="settings-card danger-card">
+        <h3>⚠️ Danger Zone</h3>
+        <p class="settings-desc">This will permanently delete all your schedules, tasks, and subjects.</p>
+        <button class="btn-danger" id="clearAllDataBtn">🗑️ Clear All Data</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== FLOATING FOCUS TIMER WIDGET ===== -->
+<div class="focus-widget" id="focusWidget">
+  <div class="focus-ring" id="focusRing">
+    <svg class="focus-svg" viewBox="0 0 100 100">
+      <circle class="focus-track" cx="50" cy="50" r="44" />
+      <circle class="focus-progress" id="focusProgress" cx="50" cy="50" r="44" />
+    </svg>
+    <div class="focus-inner" id="focusInner">
+      <div class="focus-icon">🍅</div>
+      <div class="focus-time" id="focusTime">25:00</div>
+      <div class="focus-phase" id="focusPhase">Focus</div>
+    </div>
+  </div>
+  <div class="focus-controls">
+    <button class="fc-btn" id="focusStartBtn" title="Start">▶</button>
+    <button class="fc-btn" id="focusPauseBtn" title="Pause" style="display:none">⏸</button>
+    <button class="fc-btn" id="focusResetBtn" title="Reset">↺</button>
+    <button class="fc-btn" id="focusSkipBtn" title="Skip">⏭</button>
+  </div>
+  <div class="focus-session-count">
+    Session <span id="pomodoroCount">1</span>/4
+  </div>
+</div>
+<button class="focus-toggle" id="focusToggle" title="Open Focus Timer">🍅</button>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Add/Edit Event Modal -->
+<div class="modal-overlay" id="eventModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="eventModalTitle">Add Event</h3>
+      <button class="modal-close" data-modal="eventModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Event Type</label>
+        <select id="eventType" class="input-ctrl">
+          <option value="CLASS">CLASS</option>
+          <option value="STUDY">STUDY</option>
+          <option value="EXAM">EXAM</option>
+          <option value="BREAK">BREAK</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Subject</label>
+        <select id="eventSubject" class="input-ctrl">
+          <!-- filled by JS -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Title / Topic</label>
+        <input type="text" id="eventTitle" class="input-ctrl" placeholder="e.g. AL Revision, Self Study..." />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Day</label>
+          <select id="eventDay" class="input-ctrl">
+            <option value="0">Monday</option>
+            <option value="1">Tuesday</option>
+            <option value="2">Wednesday</option>
+            <option value="3">Thursday</option>
+            <option value="4">Friday</option>
+            <option value="5">Saturday</option>
+            <option value="6">Sunday</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Start Time</label>
+          <input type="time" id="eventStart" class="input-ctrl" value="08:00" />
+        </div>
+        <div class="form-group">
+          <label>End Time</label>
+          <input type="time" id="eventEnd" class="input-ctrl" value="10:00" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="eventNotes" class="input-ctrl" rows="2" placeholder="Any extra info..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-modal="eventModal">Cancel</button>
+      <button class="btn-primary" id="saveEventBtn">Save Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Subject Modal -->
+<div class="modal-overlay" id="subjectModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="subjectModalTitle">Add Subject</h3>
+      <button class="modal-close" data-modal="subjectModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Subject Code</label>
+        <input type="text" id="subjectCode" class="input-ctrl" placeholder="e.g. ICT, SFT, ET" maxlength="10" />
+      </div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="subjectName" class="input-ctrl" placeholder="Information & Communication Technology" />
+      </div>
+      <div class="form-group">
+        <label>Teacher</label>
+        <input type="text" id="subjectTeacher" class="input-ctrl" placeholder="Teacher's name" />
+      </div>
+      <div class="form-group">
+        <label>Subject Color</label>
+        <div class="color-picker" id="colorPicker">
+          <div class="color-swatch selected" data-color="#06b6d4" style="background:#06b6d4"></div>
+          <div class="color-swatch" data-color="#10b981" style="background:#10b981"></div>
+          <div class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6"></div>
+          <div class="color-swatch" data-color="#f59e0b" style="background:#f59e0b"></div>
+          <div class="color-swatch" data-color="#ef4444" style="background:#ef4444"></div>
+          <div class="color-swatch" data-color="#ec4899" style="background:#ec4899"></div>
+          <div class="color-swatch" data-color="#6366f1" style="background:#6366f1"></div>
+          <div class="color-swatch" data-color="#14b8a6" style="background:#14b8a6"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Syllabus Progress: <span id="syllabusPct">0</span>%</label>
+        <input type="range" id="subjectProgress" class="input-ctrl" min="0" max="100" value="0" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-modal="subjectModal">Cancel</button>
+      <button class="btn-primary" id="saveSubjectBtn">Save Subject</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Recording Modal -->
+<div class="modal-overlay" id="recordingModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="recordingModalTitle">Add Recording</h3>
+      <button class="modal-close" data-modal="recordingModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="recTitle" class="input-ctrl" placeholder="e.g. Chapter 5 Zoom Recording" />
+      </div>
+      <div class="form-group">
+        <label>Subject</label>
+        <select id="recSubject" class="input-ctrl"></select>
+      </div>
+      <div class="form-group">
+        <label>Duration (minutes)</label>
+        <input type="number" id="recDuration" class="input-ctrl" placeholder="90" min="1" />
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <input type="text" id="recNotes" class="input-ctrl" placeholder="e.g. Chapter 5 - Networking Basics" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-modal="recordingModal">Cancel</button>
+      <button class="btn-primary" id="saveRecordingBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Paper Modal -->
+<div class="modal-overlay" id="paperModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="paperModalTitle">Add Past Paper</h3>
+      <button class="modal-close" data-modal="paperModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Paper Name</label>
+        <input type="text" id="paperName" class="input-ctrl" placeholder="e.g. 2023 A/L ICT Paper" />
+      </div>
+      <div class="form-group">
+        <label>Subject</label>
+        <select id="paperSubject" class="input-ctrl"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>MCQ Mark (/40)</label>
+          <input type="number" id="paperMCQ" class="input-ctrl" placeholder="0" min="0" max="40" />
+        </div>
+        <div class="form-group">
+          <label>Essay Mark (/60)</label>
+          <input type="number" id="paperEssay" class="input-ctrl" placeholder="0" min="0" max="60" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="paperStatus" class="input-ctrl">
+          <option value="not-started">Not Started</option>
+          <option value="in-progress">In Progress</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-modal="paperModal">Cancel</button>
+      <button class="btn-primary" id="savePaperBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Task Modal -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="taskModalTitle">Add Revision Task</h3>
+      <button class="modal-close" data-modal="taskModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Task Description</label>
+        <input type="text" id="taskDesc" class="input-ctrl" placeholder="e.g. Revise Chapter 3 theory" />
+      </div>
+      <div class="form-group">
+        <label>Subject</label>
+        <select id="taskSubject" class="input-ctrl"></select>
+      </div>
+      <div class="form-group">
+        <label>Priority</label>
+        <select id="taskPriority" class="input-ctrl">
+          <option value="urgent">🔴 Urgent</option>
+          <option value="high">🟡 High</option>
+          <option value="normal" selected>🟢 Normal</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Due Date (optional)</label>
+        <input type="date" id="taskDue" class="input-ctrl" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-modal="taskModal">Cancel</button>
+      <button class="btn-primary" id="saveTaskBtn">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Week Modal -->
+<div class="modal-overlay" id="weekModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="weekModalTitle">Week Goal</h3>
+      <button class="modal-close" data-modal="weekModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Weekly Goal / Milestone</label>
+        <input type="text" id="weekGoal" class="input-ctrl" placeholder="e.g. Complete ICT Chapter 5, ET Unit 2" />
+      </div>
+      <div class="form-group">
+        <label>Milestone Type</label>
+        <select id="weekMilestone" class="input-ctrl">
+          <option value="">Normal</option>
+          <option value="exam">📝 Exam / Term Test</option>
+          <option value="revision">🔄 Full Revision</option>
+          <option value="papers">📄 Paper Practice</option>
+          <option value="important">⭐ Important</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Completed?</label>
+        <select id="weekCompleted" class="input-ctrl">
+          <option value="false">No</option>
+          <option value="true">Yes ✅</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-modal="weekModal">Cancel</button>
+      <button class="btn-primary" id="saveWeekBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast"></div>
+
+<!-- Audio for Pomodoro -->
+<audio id="timerBeep" preload="auto">
+  <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA..." type="audio/wav"/>
+</audio>
+
+<script src="app.js"></script>
+</body>
+</html>
