@@ -12,25 +12,82 @@
 </head>
 <body>
 
+<!-- ===== OPENING ANIMATION (SPLASH SCREEN) ===== -->
+<div class="app-splash" id="appSplash">
+  <div class="splash-glow splash-glow-1"></div>
+  <div class="splash-glow splash-glow-2"></div>
+  <div class="splash-content">
+    <div class="splash-logo">
+      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="splashGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#6366f1"/>
+            <stop offset="50%" stop-color="#8b5cf6"/>
+            <stop offset="100%" stop-color="#06b6d4"/>
+          </linearGradient>
+          <linearGradient id="splashBook" x1="16" y1="12" x2="48" y2="52" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="100%" stop-color="#c7d2fe"/>
+          </linearGradient>
+          <linearGradient id="splashSpark" x1="26" y1="10" x2="48" y2="38" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#22d3ee"/>
+            <stop offset="100%" stop-color="#34d399"/>
+          </linearGradient>
+          <filter id="splashGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3.5" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+        <!-- Outer Glass Squircle -->
+        <rect x="3" y="3" width="58" height="58" rx="18" fill="url(#splashGrad)"/>
+        <rect x="3" y="3" width="58" height="58" rx="18" stroke="rgba(255,255,255,0.3)" stroke-width="1.8"/>
+        <!-- Stylized Open Book Wings -->
+        <path d="M16 38C21.5 35.5 27 36 32 39C37 36 42.5 35.5 48 38V22.5C42.5 20 37 20.5 32 23.5C27 20.5 21.5 20 16 22.5V38Z" fill="url(#splashBook)" fill-opacity="0.95"/>
+        <path d="M32 23.5V47.5" stroke="#4338ca" stroke-width="2.2" stroke-linecap="round"/>
+        <!-- Energy Star / Spark on top -->
+        <path d="M32 12L34.8 17.8L41 19L36.5 23L37.8 29.5L32 26.2L26.2 29.5L27.5 23L23 19L29.2 17.8L32 12Z" fill="url(#splashSpark)" filter="url(#splashGlow)"/>
+      </svg>
+    </div>
+    <div class="splash-text">
+      <h1 class="splash-title">Study &amp; Class Planner</h1>
+      <p class="splash-tagline">Plan • Study • Achieve</p>
+    </div>
+    <div class="splash-loader-wrap">
+      <div class="splash-loader-bar" id="splashLoaderBar"></div>
+    </div>
+    <div class="splash-hint">Tap anywhere to skip</div>
+  </div>
+</div>
+
 <!-- ===== SIDEBAR ===== -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
     <div class="logo-icon">
-      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="20" cy="20" r="20" fill="url(#logoGrad)"/>
-        <path d="M12 14h16M12 20h10M12 26h13" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-        <circle cx="28" cy="24" r="5" fill="white" fill-opacity="0.9"/>
-        <path d="M26 24l1.5 1.5L30 22" stroke="#6366f1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="logoGrad" x1="0" y1="0" x2="40" y2="40">
+          <linearGradient id="logoGradNew" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#6366f1"/>
+            <stop offset="50%" stop-color="#8b5cf6"/>
             <stop offset="100%" stop-color="#06b6d4"/>
           </linearGradient>
+          <linearGradient id="bookGradNew" x1="12" y1="8" x2="36" y2="40" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="100%" stop-color="#c7d2fe"/>
+          </linearGradient>
+          <linearGradient id="sparkGradNew" x1="20" y1="8" x2="36" y2="30" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#22d3ee"/>
+            <stop offset="100%" stop-color="#34d399"/>
+          </linearGradient>
         </defs>
+        <rect x="2" y="2" width="44" height="44" rx="14" fill="url(#logoGradNew)"/>
+        <rect x="2" y="2" width="44" height="44" rx="14" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+        <path d="M12 28.5C16 26.5 20 26.8 24 29C28 26.8 32 26.5 36 28.5V17C32 15 28 15.3 24 17.5C20 15.3 16 15 12 17V28.5Z" fill="url(#bookGradNew)" fill-opacity="0.95"/>
+        <path d="M24 17.5V36" stroke="#4338ca" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M24 9L26.2 13.5L31 14.4L27.5 17.5L28.5 22.5L24 20L19.5 22.5L20.5 17.5L17 14.4L21.8 13.5L24 9Z" fill="url(#sparkGradNew)"/>
       </svg>
     </div>
     <div class="logo-text">
-      <h1>Study & Class<br/>Planner</h1>
+      <h1>Study &amp; Class<br/>Planner</h1>
       <p>Plan • Study • Achieve</p>
     </div>
     <button class="sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">☰</button>
@@ -185,11 +242,23 @@
     <div class="tt-controls">
       <div class="tt-filters">
         <button class="filter-btn active" data-filter="all">All</button>
-        <button class="filter-btn" data-filter="CLASS">Class</button>
-        <button class="filter-btn" data-filter="STUDY">Study</button>
-        <button class="filter-btn" data-filter="EXAM">Exam</button>
+        <button class="filter-btn" data-filter="CLASS">📘 Class</button>
+        <button class="filter-btn" data-filter="STUDY">📖 Study</button>
+        <button class="filter-btn" data-filter="EXAM">📝 Exam</button>
       </div>
+
+      <div class="tt-view-modes" id="ttViewModes">
+        <button class="tt-mode-btn active" id="ttModeGridBtn" data-mode="grid" title="Weekly Grid View">📅 Grid</button>
+        <button class="tt-mode-btn" id="ttModeAgendaBtn" data-mode="agenda" title="Day-by-Day Agenda View">📋 Agenda</button>
+      </div>
+
+      <div class="tt-stats-pill" id="ttStatsPill">
+        <span id="ttTotalCount">0 Sessions</span> • <span id="ttTotalHours">0h</span> • <span id="ttDoneCount" style="color:var(--green)">0 Done</span>
+      </div>
+
       <div class="tt-actions">
+        <button class="btn-secondary" id="ttScrollNowBtn" title="Scroll to Current Time">📍 Now</button>
+        <button class="btn-secondary" id="ttPrintBtn" title="Print or Save as PDF">🖨️ Print</button>
         <select id="subjectFilter" class="select-ctrl">
           <option value="">All Subjects</option>
         </select>
@@ -197,10 +266,16 @@
       </div>
     </div>
 
-    <div class="timetable-wrapper">
+    <!-- 1. Weekly Grid View Container -->
+    <div class="timetable-wrapper" id="timetableWrapper">
       <div class="timetable-grid" id="timetableGrid">
         <!-- Rendered by JS -->
       </div>
+    </div>
+
+    <!-- 2. Day-by-Day Agenda / List View Container -->
+    <div class="timetable-agenda" id="timetableAgenda" style="display:none;">
+      <!-- Rendered by JS -->
     </div>
   </section>
 
@@ -215,8 +290,18 @@
     <!-- Recordings Panel -->
     <div class="sw-panel active" id="panel-recordings">
       <div class="panel-header">
-        <h3>Class Recordings</h3>
-        <button class="btn-primary" id="addRecordingBtn">+ Add Recording</button>
+        <div>
+          <h3>Class Recordings</h3>
+          <div class="panel-sub" id="recStatsSub">0 recordings tracked</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div class="sw-subfilters" id="recFilters">
+            <button class="filter-btn active" data-recfilter="all">All</button>
+            <button class="filter-btn" data-recfilter="unwatched">⏳ Pending</button>
+            <button class="filter-btn" data-recfilter="watched">✅ Watched</button>
+          </div>
+          <button class="btn-primary" id="addRecordingBtn">+ Add Recording</button>
+        </div>
       </div>
       <div id="recordingsList" class="items-list"></div>
     </div>
@@ -224,8 +309,23 @@
     <!-- Past Papers Panel -->
     <div class="sw-panel" id="panel-papers">
       <div class="panel-header">
-        <h3>Past Papers & Model Papers</h3>
-        <button class="btn-primary" id="addPaperBtn">+ Add Paper</button>
+        <div>
+          <h3>Past Papers & Model Papers</h3>
+          <div class="panel-sub" id="paperStatsSub">0 papers tracked</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div class="sw-subfilters" id="paperFilters">
+            <button class="filter-btn active" data-paperfilter="all">All</button>
+            <button class="filter-btn" data-paperfilter="completed">✅ Done</button>
+            <button class="filter-btn" data-paperfilter="in-progress">⏳ In Progress</button>
+          </div>
+          <button class="btn-primary" id="addPaperBtn">+ Add Paper</button>
+        </div>
+      </div>
+      <div class="papers-mini-stats" id="papersMiniStats">
+        <div class="pms-card"><span class="pms-label">Average</span><span class="pms-val" id="paperAvgScore">--%</span></div>
+        <div class="pms-card"><span class="pms-label">Best Score</span><span class="pms-val" id="paperBestScore">--%</span></div>
+        <div class="pms-card"><span class="pms-label">Completed</span><span class="pms-val" id="paperDoneCount">0</span></div>
       </div>
       <div id="papersList" class="items-list"></div>
     </div>
@@ -233,8 +333,14 @@
     <!-- Tasks Panel -->
     <div class="sw-panel" id="panel-tasks">
       <div class="panel-header">
-        <h3>Revision Tasks</h3>
-        <button class="btn-primary" id="addTaskBtn">+ Add Task</button>
+        <div>
+          <h3>Revision Tasks</h3>
+          <div class="panel-sub" id="taskStatsSub">0 tasks pending</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-secondary btn-sm" id="clearDoneTasksBtn" title="Clear all completed tasks">🧹 Clear Done</button>
+          <button class="btn-primary" id="addTaskBtn">+ Add Task</button>
+        </div>
       </div>
       <div class="task-filters">
         <button class="filter-btn active" data-priority="">All</button>
@@ -277,8 +383,14 @@
   <!-- ============ VIEW: 52 WEEKS ============ -->
   <section class="view" id="view-weeks52">
     <div class="weeks-header">
-      <h3>🗓️ 52-Week A/L Roadmap</h3>
-      <p>Track your weekly syllabus coverage across the entire year.</p>
+      <div>
+        <h3>🗓️ 52-Week A/L Roadmap</h3>
+        <p>Track your weekly syllabus coverage across the entire year.</p>
+      </div>
+      <div class="weeks-roadmap-summary" id="weeksRoadmapSummary">
+        <div class="wrm-text" id="wrmText">Week -- of 52</div>
+        <div class="wrm-bar"><div class="wrm-fill" id="wrmFill" style="width:0%"></div></div>
+      </div>
     </div>
     <div class="weeks-grid" id="weeksGrid">
       <!-- Rendered by JS -->
@@ -641,10 +753,7 @@
 <!-- Toast Notification -->
 <div class="toast" id="toast"></div>
 
-<!-- Audio for Pomodoro -->
-<audio id="timerBeep" preload="auto">
-  <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA..." type="audio/wav"/>
-</audio>
+<!-- Audio handled via Web Audio API in app.js -->
 
 <script src="app.js"></script>
 </body>
