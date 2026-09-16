@@ -57,7 +57,7 @@ const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'
 const DAY_SHORT = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
 const TIMETABLE_START = 7; // 07:00
 const TIMETABLE_END   = 23; // 23:00
-const HOUR_PX = 60;
+const HOUR_PX = 64;
 
 // ===================== STATE =====================
 let state = {
@@ -310,18 +310,26 @@ function renderTodaySchedule() {
     const subj = getSubjectById(e.subjectId);
     const color = subj ? subj.color : '#6366f1';
     const badge = `<span class="today-item-badge type-${e.type}" style="background:${color}22;color:${color}">${e.type}</span>`;
-    return `<div class="today-item ${e.status}" style="border-left-color:${color}">
+    return `<div class="today-item ${e.status}" data-id="${e.id}" style="border-left-color:${color};cursor:pointer;" title="Click to edit session">
       <div class="today-item-time">${e.start}<br/>${e.end}</div>
       <div class="today-item-info">
         <div class="today-item-title">${e.status === 'done' ? '✅ ' : ''}${e.title}</div>
-        <div class="today-item-sub">${subj ? subj.code : '—'}</div>
+        <div class="today-item-sub">${subj ? subj.code : '—'}${e.notes ? ' · ' + e.notes : ''}</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
         ${badge}
-        <button class="tt-action-btn done-btn today-act-btn" title="${e.status === 'done' ? 'Mark Pending' : 'Mark Done'}" data-id="${e.id}" data-action="done" style="width:24px;height:24px;">✓</button>
+        <button class="tt-action-btn done-btn today-act-btn" title="${e.status === 'done' ? 'Mark Pending' : 'Mark Done'}" data-id="${e.id}" data-action="done" style="width:26px;height:26px;">✓</button>
       </div>
     </div>`;
   }).join('');
+
+  container.querySelectorAll('.today-item').forEach(item => {
+    item.addEventListener('click', (ev) => {
+      if (ev.target.closest('.today-act-btn')) return;
+      const evObj = state.events.find(e => e.id === item.dataset.id);
+      if (evObj) openEditEventModal(evObj);
+    });
+  });
 
   container.querySelectorAll('.today-act-btn').forEach(btn => {
     btn.addEventListener('click', (ev) => {
@@ -431,10 +439,40 @@ function drawMiniChart() {
 // ===================== TIMETABLE =====================
 let ttFilter = 'all';
 let ttSubjectFilter = '';
+let ttViewMode = 'grid'; // 'grid' | 'agenda'
 
 function renderTimetable() {
   populateSubjectFilter();
-  buildTimetableGrid();
+  updateTimetableStats();
+
+  const wrapperEl = document.getElementById('timetableWrapper');
+  const agendaEl = document.getElementById('timetableAgenda');
+
+  if (ttViewMode === 'grid') {
+    if (wrapperEl) wrapperEl.style.display = 'block';
+    if (agendaEl) agendaEl.style.display = 'none';
+    buildTimetableGrid();
+  } else {
+    if (wrapperEl) wrapperEl.style.display = 'none';
+    if (agendaEl) agendaEl.style.display = 'flex';
+    buildTimetableAgenda();
+  }
+}
+
+function updateTimetableStats() {
+  const totalEvents = state.events.length;
+  let totalMins = 0;
+  let doneCount = 0;
+  state.events.forEach(e => {
+    totalMins += timeToMinutes(e.end) - timeToMinutes(e.start);
+    if (e.status === 'done') doneCount++;
+  });
+  const countEl = document.getElementById('ttTotalCount');
+  const hoursEl = document.getElementById('ttTotalHours');
+  const doneEl = document.getElementById('ttDoneCount');
+  if (countEl) countEl.textContent = `${totalEvents} Sessions`;
+  if (hoursEl) hoursEl.textContent = `${(totalMins / 60).toFixed(1)}h`;
+  if (doneEl) doneEl.textContent = `${doneCount} Done`;
 }
 
 function populateSubjectFilter() {
@@ -452,18 +490,39 @@ function buildTimetableGrid() {
   const grid = document.getElementById('timetableGrid');
   grid.innerHTML = '';
   const todayDay = getDayOfWeek();
-  const hours = TIMETABLE_END - TIMETABLE_START; // 16
+  const hours = TIMETABLE_END - TIMETABLE_START;
+  const now = new Date();
+
+  // Get dates for this week (Mon–Sun)
+  const weekDates = getWeekDates();
+
+  // Filter events
+  let filteredEvents = state.events;
+  if (ttFilter !== 'all') filteredEvents = filteredEvents.filter(e => e.type === ttFilter);
+  if (ttSubjectFilter) filteredEvents = filteredEvents.filter(e => e.subjectId === ttSubjectFilter);
 
   // Header row
   const timeHeader = document.createElement('div');
   timeHeader.className = 'tt-day-header time-header';
-  timeHeader.textContent = 'TIME';
+  timeHeader.innerHTML = '<span class="tt-day-name">TIME</span>';
   grid.appendChild(timeHeader);
 
   DAY_NAMES.forEach((name, i) => {
     const h = document.createElement('div');
-    h.className = 'tt-day-header' + (i === todayDay ? ' today-col' : '');
-    h.textContent = name + (i === todayDay ? ' ★' : '');
+    const isToday = i === todayDay;
+    h.className = 'tt-day-header' + (isToday ? ' today-col' : '');
+    const dateNum = weekDates[i] ? weekDates[i].getDate() : '';
+
+    // Calculate total scheduled hours for this day
+    const dayMins = filteredEvents.filter(e => e.day === i).reduce((sum, e) => sum + (timeToMinutes(e.end) - timeToMinutes(e.start)), 0);
+    const dayHrsStr = dayMins > 0 ? `${(dayMins / 60).toFixed(1)}h` : '0h';
+
+    h.innerHTML = `
+      ${isToday ? '<span class="tt-today-badge">TODAY</span>' : ''}
+      <span class="tt-day-name">${DAY_SHORT[i]}</span>
+      <span class="tt-day-date">${dateNum}</span>
+      <span class="tt-day-hrs-pill">${dayHrsStr}</span>
+    `;
     grid.appendChild(h);
   });
 
@@ -477,17 +536,38 @@ function buildTimetableGrid() {
 
     for (let d = 0; d < 7; d++) {
       const cell = document.createElement('div');
-      cell.className = 'tt-day-col';
+      cell.className = 'tt-day-col' + (d === todayDay ? ' today-bg' : '');
       cell.style.height = HOUR_PX + 'px';
       cell.dataset.day = d;
       cell.dataset.hour = hour;
-      // Hour line
+
+      // Full-hour line
       const line = document.createElement('div');
       line.className = 'tt-hour-line';
       cell.appendChild(line);
+
+      // Half-hour line
+      const half = document.createElement('div');
+      half.className = 'tt-half-line';
+      cell.appendChild(half);
+
+      // Current time indicator (only in today's column)
+      if (d === todayDay) {
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        const cellStartMins = hour * 60;
+        const cellEndMins = (hour + 1) * 60;
+        if (currentMins >= cellStartMins && currentMins < cellEndMins) {
+          const nowLine = document.createElement('div');
+          nowLine.className = 'tt-now-line';
+          const pct = (currentMins - cellStartMins) / 60;
+          nowLine.style.top = (pct * HOUR_PX) + 'px';
+          cell.appendChild(nowLine);
+        }
+      }
+
       // Click to add event quickly
       cell.addEventListener('click', (e) => {
-        if (e.target === cell || e.target === line) {
+        if (e.target === cell || e.target === line || e.target === half) {
           openAddEventModal(d, hour);
         }
       });
@@ -495,63 +575,340 @@ function buildTimetableGrid() {
     }
   }
 
-  // Now place events
+  // Group events by day and layout avoiding overlapping
+  for (let d = 0; d < 7; d++) {
+    const dayEvents = filteredEvents.filter(e => e.day === d);
+    layoutDayEvents(dayEvents, grid);
+  }
+
+  // Auto-scroll to current time (show 1.5 hours before now)
+  scrollToCurrentTime(false);
+}
+
+function buildTimetableAgenda() {
+  const container = document.getElementById('timetableAgenda');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const todayDay = getDayOfWeek();
+  const weekDates = getWeekDates();
+
   let filteredEvents = state.events;
   if (ttFilter !== 'all') filteredEvents = filteredEvents.filter(e => e.type === ttFilter);
   if (ttSubjectFilter) filteredEvents = filteredEvents.filter(e => e.subjectId === ttSubjectFilter);
 
-  filteredEvents.forEach(ev => placeEvent(ev, grid));
+  DAY_NAMES.forEach((name, i) => {
+    const isToday = i === todayDay;
+    const dateObj = weekDates[i];
+    const dateStr = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    const dayEvents = filteredEvents.filter(e => e.day === i).sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+
+    let dayTotalMins = 0;
+    dayEvents.forEach(e => dayTotalMins += timeToMinutes(e.end) - timeToMinutes(e.start));
+    const dayHrsStr = (dayTotalMins / 60).toFixed(1) + 'h';
+
+    const dayCard = document.createElement('div');
+    dayCard.className = 'agenda-day-card' + (isToday ? ' is-today' : '');
+
+    const header = document.createElement('div');
+    header.className = 'agenda-day-header';
+    header.innerHTML = `
+      <div class="agenda-day-title-wrap">
+        <span class="agenda-day-name">${name}</span>
+        <span class="agenda-day-date">${dateStr}</span>
+        ${isToday ? '<span class="tt-today-badge">TODAY</span>' : ''}
+      </div>
+      <div class="agenda-day-stats">${dayEvents.length} session${dayEvents.length === 1 ? '' : 's'} • ${dayHrsStr}</div>
+    `;
+    dayCard.appendChild(header);
+
+    if (!dayEvents.length) {
+      const empty = document.createElement('div');
+      empty.className = 'agenda-empty-day';
+      empty.textContent = '☕ No sessions scheduled for this day';
+      dayCard.appendChild(empty);
+    } else {
+      const list = document.createElement('div');
+      list.className = 'agenda-sessions-list';
+
+      dayEvents.forEach(ev => {
+        const subj = getSubjectById(ev.subjectId);
+        const color = subj ? subj.color : '#6366f1';
+        const durMins = timeToMinutes(ev.end) - timeToMinutes(ev.start);
+        const durStr = formatDuration(durMins);
+
+        const item = document.createElement('div');
+        item.className = 'agenda-item' + (ev.status === 'done' ? ' done' : '');
+        item.style.borderLeftColor = color;
+        item.title = 'Click to edit session';
+
+        item.innerHTML = `
+          <div class="agenda-item-time">
+            <span>${ev.start} – ${ev.end}</span>
+            <span class="agenda-item-duration">${durStr}</span>
+          </div>
+          <div class="agenda-item-info">
+            <div class="agenda-item-title">${ev.status === 'done' ? '✅ ' : ''}${ev.title}</div>
+            <div class="agenda-item-sub">
+              <span style="color:${color};font-weight:600;">${subj ? subj.code : 'General'}</span>
+              ${ev.notes ? ' · ' + ev.notes : ''}
+            </div>
+          </div>
+          <div class="agenda-item-actions">
+            <button class="tt-action-btn done-btn" title="${ev.status === 'done' ? 'Mark Pending' : 'Mark Done'}" data-id="${ev.id}" data-action="done">✓</button>
+            <button class="tt-action-btn edit-btn" title="Edit Session" data-id="${ev.id}" data-action="edit">✎</button>
+            <button class="tt-action-btn del-btn" title="Delete Session" data-id="${ev.id}" data-action="delete">🗑</button>
+          </div>
+        `;
+
+        const actionsEl = item.querySelector('.agenda-item-actions');
+        let itemActionsTimer = null;
+        const showItemActions = () => {
+          if (!actionsEl) return;
+          actionsEl.classList.add('show-actions');
+          clearTimeout(itemActionsTimer);
+          itemActionsTimer = setTimeout(() => {
+            actionsEl.classList.remove('show-actions');
+          }, 5000);
+        };
+
+        item.addEventListener('mouseenter', showItemActions);
+        item.addEventListener('mousemove', () => {
+          if (actionsEl && !actionsEl.classList.contains('show-actions')) {
+            showItemActions();
+          }
+        });
+        item.addEventListener('mouseleave', () => {
+          clearTimeout(itemActionsTimer);
+          if (actionsEl) actionsEl.classList.remove('show-actions');
+        });
+
+        item.addEventListener('click', (e) => {
+          if (e.target.closest('.tt-action-btn')) return;
+          openEditEventModal(ev);
+        });
+
+        item.querySelectorAll('.tt-action-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleEventAction(btn.dataset.id, btn.dataset.action);
+          });
+        });
+
+        list.appendChild(item);
+      });
+      dayCard.appendChild(list);
+    }
+
+    container.appendChild(dayCard);
+  });
 }
 
-function placeEvent(ev, grid) {
+function layoutDayEvents(events, grid) {
+  if (!events.length) return;
+
+  // Sort by start time ascending, then duration descending
+  const sorted = [...events].sort((a, b) => {
+    const diff = timeToMinutes(a.start) - timeToMinutes(b.start);
+    if (diff !== 0) return diff;
+    return timeToMinutes(b.end) - timeToMinutes(a.end);
+  });
+
+  // Group into overlapping clusters
+  const clusters = [];
+  sorted.forEach(ev => {
+    const s = timeToMinutes(ev.start);
+    const e = timeToMinutes(ev.end);
+    let matchedCluster = null;
+
+    for (const cluster of clusters) {
+      const clusterStart = Math.min(...cluster.map(item => timeToMinutes(item.start)));
+      const clusterEnd = Math.max(...cluster.map(item => timeToMinutes(item.end)));
+      if (s < clusterEnd && e > clusterStart) {
+        matchedCluster = cluster;
+        break;
+      }
+    }
+
+    if (matchedCluster) {
+      matchedCluster.push(ev);
+    } else {
+      clusters.push([ev]);
+    }
+  });
+
+  // Within each cluster, calculate columns
+  clusters.forEach(cluster => {
+    const columns = []; // tracks end time of each column
+    cluster.forEach(ev => {
+      const s = timeToMinutes(ev.start);
+      let colIdx = columns.findIndex(colEnd => s >= colEnd);
+      if (colIdx === -1) {
+        colIdx = columns.length;
+        columns.push(timeToMinutes(ev.end));
+      } else {
+        columns[colIdx] = timeToMinutes(ev.end);
+      }
+      ev._col = colIdx;
+    });
+
+    const totalCols = Math.max(columns.length, 1);
+    cluster.forEach(ev => {
+      placeEvent(ev, grid, ev._col || 0, totalCols);
+    });
+  });
+}
+
+function scrollToCurrentTime(smooth = true) {
+  const wrapper = document.querySelector('.timetable-wrapper');
+  if (!wrapper) return;
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMins = now.getMinutes();
+  if (currentHour >= TIMETABLE_START && currentHour <= TIMETABLE_END) {
+    const totalMinsFromStart = (currentHour - TIMETABLE_START) * 60 + currentMins;
+    const headerHeight = 56;
+    const targetPx = Math.max(0, (totalMinsFromStart / 60) * HOUR_PX - 90 + headerHeight);
+    if (smooth) {
+      wrapper.scrollTo({ top: targetPx, behavior: 'smooth' });
+    } else {
+      requestAnimationFrame(() => { wrapper.scrollTop = targetPx; });
+    }
+  }
+}
+
+function getWeekDates() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  monday.setHours(0, 0, 0, 0);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+}
+
+function placeEvent(ev, grid, colIndex = 0, totalCols = 1) {
   const subj = getSubjectById(ev.subjectId);
   const color = subj ? subj.color : '#6366f1';
   const startM = timeToMinutes(ev.start);
   const endM = timeToMinutes(ev.end);
   const startHr = Math.floor(startM / 60);
-  const topOffset = ((startM - TIMETABLE_START*60) / 60) * HOUR_PX + ((ev.day+1) >= 0 ? 0 : 0); // relative to grid
+  const durationMins = endM - startM;
+  const heightPx = Math.max(((durationMins) / 60) * HOUR_PX - 4, 46);
 
-  // Find the day column cells for this event
-  // We use absolute positioning within the container
-  const dayCol = grid.querySelectorAll(`.tt-day-col[data-day="${ev.day}"]`);
-  if (!dayCol.length) return;
+  // Find the starting cell
+  const startCell = grid.querySelector(`.tt-day-col[data-day="${ev.day}"][data-hour="${startHr}"]`);
+  if (!startCell) return;
 
-  // We'll place inside the grid container with absolute positioning
-  // Calculate top relative to grid (after header row)
-  const topPx = ((startM - TIMETABLE_START*60) / 60) * HOUR_PX;
-  const heightPx = Math.max(((endM - startM) / 60) * HOUR_PX - 4, 84);
+  // Offset within the starting cell
+  const cellTopMins = startHr * 60;
+  const relativeTopPx = ((startM - cellTopMins) / 60) * HOUR_PX;
 
-  // Use the first day-col cell as a reference container
-  const container = dayCol[0].closest('.tt-day-col') || dayCol[0];
-
-  // Find the correct column using grid position
-  // We place in a wrapper approach instead
   const block = document.createElement('div');
-  block.className = `tt-event type-${ev.type} ${ev.status === 'done' ? 'done' : ''} ${ev.status === 'cancelled' ? 'cancelled' : ''}`;
+  block.className = `tt-event type-${ev.type}${ev.status === 'done' ? ' done' : ''}${ev.status === 'cancelled' ? ' cancelled' : ''}`;
+  block.title = `${ev.title} (${ev.start} – ${ev.end}) — Click to edit`;
+
+  // Side-by-side positioning if multiple events overlap
+  let widthCss = '';
+  if (totalCols > 1) {
+    const colWidthPct = 100 / totalCols;
+    widthCss = `
+      left: calc(${colIndex * colWidthPct}% + 3px);
+      width: calc(${colWidthPct}% - 6px);
+      right: auto;
+    `;
+  } else {
+    widthCss = `
+      left: 4px;
+      right: 4px;
+    `;
+  }
+
   block.style.cssText = `
-    top: ${topPx}px;
+    top: ${relativeTopPx}px;
     height: ${heightPx}px;
     color: ${color};
     border-left-color: ${color};
-    background: linear-gradient(135deg, ${color}18, ${color}08);
+    background: linear-gradient(145deg, ${color}20, ${color}0a);
+    ${widthCss}
   `;
 
-  const statusIcon = ev.status === 'done' ? '✅' : ev.status === 'cancelled' ? '❌' : '';
+  const statusIcon = ev.status === 'done' ? '✅ ' : ev.status === 'cancelled' ? '❌ ' : '';
+  const durationLabel = formatDuration(durationMins);
+  const isShort = heightPx < 68; // compact view for shorter events
 
-  block.innerHTML = `
-    <div class="tt-card-top" style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:3px;">
-      <span class="tt-event-badge" style="background:${color}28;color:${color}">${ev.type}</span>
-      <span class="tt-event-time">${ev.start} – ${ev.end}</span>
-    </div>
-    <div class="tt-event-title">${statusIcon ? statusIcon + ' ' : ''}${ev.title}</div>
-    <div class="tt-event-sub">${subj ? subj.code : ''}${ev.notes ? ' · ' + ev.notes : ''}</div>
-    <div class="tt-event-actions">
-      <button class="tt-action-btn done-btn" title="Mark Done" data-id="${ev.id}" data-action="done">✓</button>
-      <button class="tt-action-btn cancel-btn" title="Cancel/Skip" data-id="${ev.id}" data-action="cancel">✕</button>
-      <button class="tt-action-btn edit-btn" title="Edit" data-id="${ev.id}" data-action="edit">✎</button>
-      <button class="tt-action-btn del-btn" title="Delete" data-id="${ev.id}" data-action="delete">🗑</button>
-    </div>
-  `;
+  if (isShort) {
+    block.innerHTML = `
+      <div class="tt-event-top">
+        <span class="tt-event-badge" style="background:${color}28;color:${color}">${ev.type}</span>
+        <span class="tt-event-time">${ev.start}–${ev.end}</span>
+      </div>
+      <div class="tt-event-title" style="font-size:11px">${statusIcon}${ev.title}</div>
+      <div class="tt-event-actions" style="margin-top:2px;">
+        <button class="tt-action-btn done-btn" title="${ev.status === 'done' ? 'Mark Pending' : 'Mark Done'}" data-id="${ev.id}" data-action="done">✓</button>
+        <button class="tt-action-btn edit-btn" title="Edit Session" data-id="${ev.id}" data-action="edit">✎</button>
+        <button class="tt-action-btn del-btn" title="Delete Session" data-id="${ev.id}" data-action="delete">🗑</button>
+      </div>
+    `;
+  } else {
+    block.innerHTML = `
+      <div class="tt-event-top">
+        <span class="tt-event-badge" style="background:${color}28;color:${color}">${ev.type}</span>
+        <span class="tt-event-time">${ev.start} – ${ev.end}</span>
+      </div>
+      <div class="tt-event-title">${statusIcon}${ev.title}</div>
+      <div class="tt-event-sub">${subj ? subj.code : ''}${ev.notes ? ' · ' + ev.notes : ''}</div>
+      <div class="tt-event-duration" style="color:${color}">${durationLabel}</div>
+      <div class="tt-event-actions">
+        <button class="tt-action-btn done-btn" title="${ev.status === 'done' ? 'Mark Pending' : 'Mark Done'}" data-id="${ev.id}" data-action="done">✓</button>
+        <button class="tt-action-btn cancel-btn" title="${ev.status === 'cancelled' ? 'Restore' : 'Skip/Cancel'}" data-id="${ev.id}" data-action="cancel">✕</button>
+        <button class="tt-action-btn edit-btn" title="Edit Session" data-id="${ev.id}" data-action="edit">✎</button>
+        <button class="tt-action-btn del-btn" title="Delete Session" data-id="${ev.id}" data-action="delete">🗑</button>
+      </div>
+    `;
+  }
+
+  // Show action buttons on hover and auto-hide after ~5 seconds of resting
+  const actionsEl = block.querySelector('.tt-event-actions');
+  let actionsTimeout = null;
+
+  const showActions = () => {
+    if (!actionsEl) return;
+    actionsEl.classList.add('show-actions');
+    clearTimeout(actionsTimeout);
+    actionsTimeout = setTimeout(() => {
+      actionsEl.classList.remove('show-actions');
+    }, 5000); // 5 seconds visible, then softly fades out
+  };
+
+  block.addEventListener('mouseenter', showActions);
+  block.addEventListener('mousemove', () => {
+    if (actionsEl && !actionsEl.classList.contains('show-actions')) {
+      showActions();
+    }
+  });
+  block.addEventListener('mouseleave', () => {
+    clearTimeout(actionsTimeout);
+    if (actionsEl) actionsEl.classList.remove('show-actions');
+  });
+
+  if (actionsEl) {
+    actionsEl.addEventListener('mouseenter', () => clearTimeout(actionsTimeout));
+    actionsEl.addEventListener('mouseleave', () => {
+      actionsTimeout = setTimeout(() => {
+        actionsEl.classList.remove('show-actions');
+      }, 1500);
+    });
+  }
+
+  // Click card to open edit modal (unless clicking an action button)
+  block.addEventListener('click', (e) => {
+    if (e.target.closest('.tt-action-btn')) return;
+    openEditEventModal(ev);
+  });
 
   block.querySelectorAll('.tt-action-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -560,54 +917,17 @@ function placeEvent(ev, grid) {
     });
   });
 
-  // Each day column has multiple cells stacked. Place event in the right spot.
-  // We use a column-wrapper div approach — find cell at top row
-  const allDayCells = Array.from(grid.querySelectorAll(`.tt-day-col[data-day="${ev.day}"]`));
-  if (allDayCells.length > 0) {
-    // place in first cell but use relative positioning across all cells
-    allDayCells[0].style.position = 'relative';
-    // Actually we need a column wrapper
-    // Create a wrapper for this day if needed
-    let wrapper = grid.querySelector(`.tt-col-wrapper[data-day="${ev.day}"]`);
-    if (!wrapper) {
-      wrapper = document.createElement('div');
-      wrapper.className = 'tt-col-wrapper';
-      wrapper.dataset.day = ev.day;
-      wrapper.style.cssText = `
-        position: absolute;
-        top: 0; bottom: 0;
-        pointer-events: none;
-      `;
-    }
-    block.style.position = 'absolute';
-    block.style.pointerEvents = 'all';
-  }
-
-  // Simpler: place directly in the first time-slot cell that matches and use absolute within that cell column
-  // Find the cell where the event starts
-  const startCellHr = startHr;
-  const startCell = grid.querySelector(`.tt-day-col[data-day="${ev.day}"][data-hour="${startCellHr}"]`);
-  if (!startCell) {
-    // Outside display range
-    // Use first cell and offset
-    const firstCell = grid.querySelector(`.tt-day-col[data-day="${ev.day}"]`);
-    if (firstCell) {
-      firstCell.appendChild(block);
-      block.style.position = 'absolute';
-      block.style.top = topPx + 'px';
-      block.style.height = heightPx + 'px';
-    }
-    return;
-  }
-
-  // Place in the appropriate cell, with top offset relative to that cell
-  const cellTopMins = startCellHr * 60;
-  const relativeTopPx = ((startM - cellTopMins) / 60) * HOUR_PX;
-  block.style.position = 'absolute';
-  block.style.top = relativeTopPx + 'px';
-  block.style.height = heightPx + 'px';
   startCell.appendChild(block);
 }
+
+function formatDuration(mins) {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m}min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}min`;
+}
+
 
 function handleEventAction(id, action) {
   const ev = state.events.find(e => e.id === id);
@@ -656,6 +976,36 @@ document.getElementById('subjectFilter').addEventListener('change', (e) => {
   ttSubjectFilter = e.target.value;
   if (currentView === 'timetable') renderTimetable();
 });
+
+const scrollNowBtn = document.getElementById('ttScrollNowBtn');
+if (scrollNowBtn) {
+  scrollNowBtn.addEventListener('click', () => {
+    if (ttViewMode !== 'grid') {
+      ttViewMode = 'grid';
+      document.querySelectorAll('.tt-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === 'grid'));
+      renderTimetable();
+    }
+    setTimeout(() => scrollToCurrentTime(true), 100);
+  });
+}
+
+// Timetable View Mode Switcher
+document.querySelectorAll('.tt-mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tt-mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ttViewMode = btn.dataset.mode || 'grid';
+    renderTimetable();
+  });
+});
+
+// Timetable Print / PDF Button
+const printBtn = document.getElementById('ttPrintBtn');
+if (printBtn) {
+  printBtn.addEventListener('click', () => {
+    window.print();
+  });
+}
 
 // ===================== ADD/EDIT EVENT MODAL =====================
 let editingEventId = null;
@@ -750,39 +1100,77 @@ document.querySelectorAll('.sw-tab').forEach(tab => {
 });
 
 // --- RECORDINGS ---
+let recFilter = 'all';
 function renderRecordings() {
   const list = document.getElementById('recordingsList');
-  if (!state.recordings.length) { list.innerHTML = '<p class="empty-msg">No recordings tracked yet.</p>'; return; }
-  list.innerHTML = state.recordings.map(r => {
+  const statsSub = document.getElementById('recStatsSub');
+
+  const total = state.recordings.length;
+  const watchedCount = state.recordings.filter(r => r.watched).length;
+  let totalMinutes = 0;
+  state.recordings.forEach(r => { totalMinutes += parseInt(r.duration) || 0; });
+  const hrs = (totalMinutes / 60).toFixed(1);
+
+  if (statsSub) {
+    statsSub.textContent = `${total} recordings (${watchedCount} watched • ${hrs}h total)`;
+  }
+
+  let items = [...state.recordings];
+  if (recFilter === 'watched') items = items.filter(r => r.watched);
+  if (recFilter === 'unwatched') items = items.filter(r => !r.watched);
+
+  if (!items.length) {
+    list.innerHTML = `<p class="empty-msg">${total ? 'No recordings matching this filter.' : 'No recordings tracked yet.'}</p>`;
+    return;
+  }
+
+  list.innerHTML = items.map(r => {
     const subj = getSubjectById(r.subjectId);
     const color = subj ? subj.color : '#6366f1';
     return `<div class="item-card ${r.watched ? 'done' : ''}">
-      <div class="item-check ${r.watched ? 'checked' : ''}" data-id="${r.id}" data-type="rec">
+      <div class="item-check ${r.watched ? 'checked' : ''}" data-id="${r.id}" data-type="rec" title="Click to toggle watched">
         ${r.watched ? '✓' : ''}
       </div>
       <div class="item-info">
         <div class="item-title">${r.title}</div>
         <div class="item-sub" style="color:${color}">${subj ? subj.code : ''} · ${r.duration ? r.duration + ' min' : ''} ${r.notes ? '· ' + r.notes : ''}</div>
       </div>
-      <button class="item-del-btn" data-id="${r.id}" data-type="rec">🗑</button>
+      <button class="item-del-btn" data-id="${r.id}" data-type="rec" title="Delete recording">🗑</button>
     </div>`;
   }).join('');
 
   list.querySelectorAll('.item-check').forEach(el => {
     el.addEventListener('click', () => {
       const rec = state.recordings.find(r => r.id === el.dataset.id);
-      if (rec) { rec.watched = !rec.watched; saveState(); renderRecordings(); }
+      if (rec) {
+        rec.watched = !rec.watched;
+        saveState();
+        renderRecordings();
+        if (currentView === 'performance') renderPerformance();
+      }
     });
   });
   list.querySelectorAll('.item-del-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (confirm('Delete this recording?')) {
         state.recordings = state.recordings.filter(r => r.id !== btn.dataset.id);
-        saveState(); renderRecordings();
+        saveState();
+        renderRecordings();
+        if (currentView === 'performance') renderPerformance();
       }
     });
   });
 }
+
+// Recordings filter buttons
+document.querySelectorAll('#recFilters .filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#recFilters .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    recFilter = btn.dataset.recfilter || 'all';
+    renderRecordings();
+  });
+});
 
 let editingRecId = null;
 document.getElementById('addRecordingBtn').addEventListener('click', () => {
@@ -814,16 +1202,48 @@ document.getElementById('saveRecordingBtn').addEventListener('click', () => {
 });
 
 // --- PAPERS ---
+let paperFilter = 'all';
 function renderPapers() {
   const list = document.getElementById('papersList');
-  if (!state.papers.length) { list.innerHTML = '<p class="empty-msg">No papers logged yet.</p>'; return; }
-  list.innerHTML = state.papers.map(p => {
+  const statsSub = document.getElementById('paperStatsSub');
+  const avgEl = document.getElementById('paperAvgScore');
+  const bestEl = document.getElementById('paperBestScore');
+  const doneCountEl = document.getElementById('paperDoneCount');
+
+  const total = state.papers.length;
+  const completed = state.papers.filter(p => p.status === 'completed');
+  let sumPct = 0;
+  let bestPct = 0;
+
+  state.papers.forEach(p => {
+    const mcq = parseInt(p.mcq) || 0;
+    const essay = parseInt(p.essay) || 0;
+    const pct = Math.round(((mcq + essay) / 100) * 100);
+    sumPct += pct;
+    if (pct > bestPct) bestPct = pct;
+  });
+
+  if (statsSub) statsSub.textContent = `${total} papers logged (${completed.length} completed)`;
+  if (avgEl) avgEl.textContent = total ? `${Math.round(sumPct / total)}%` : '--%';
+  if (bestEl) bestEl.textContent = total ? `${bestPct}%` : '--%';
+  if (doneCountEl) doneCountEl.textContent = completed.length;
+
+  let items = [...state.papers];
+  if (paperFilter === 'completed') items = items.filter(p => p.status === 'completed');
+  if (paperFilter === 'in-progress') items = items.filter(p => p.status === 'in-progress');
+
+  if (!items.length) {
+    list.innerHTML = `<p class="empty-msg">${total ? 'No papers matching this filter.' : 'No papers logged yet.'}</p>`;
+    return;
+  }
+
+  list.innerHTML = items.map(p => {
     const subj = getSubjectById(p.subjectId);
     const color = subj ? subj.color : '#6366f1';
     const mcq = parseInt(p.mcq) || 0;
     const essay = parseInt(p.essay) || 0;
-    const total = mcq + essay;
-    const pct = Math.round((total / 100) * 100);
+    const totalScore = mcq + essay;
+    const pct = Math.round((totalScore / 100) * 100);
     const { grade, color: gradeColor } = gradeFromScore(pct);
     const statusBadge = `<span class="item-badge badge-${p.status.replace(' ', '-')}">${p.status}</span>`;
     return `<div class="item-card">
@@ -836,7 +1256,7 @@ function renderPapers() {
         <div class="item-sub" style="color:${color}">${subj ? subj.code : ''} · MCQ: ${mcq}/40 · Essay: ${essay}/60</div>
       </div>
       ${statusBadge}
-      <button class="item-del-btn" data-id="${p.id}">🗑</button>
+      <button class="item-del-btn" data-id="${p.id}" title="Delete paper">🗑</button>
     </div>`;
   }).join('');
 
@@ -844,11 +1264,22 @@ function renderPapers() {
     btn.addEventListener('click', () => {
       if (confirm('Delete this paper?')) {
         state.papers = state.papers.filter(p => p.id !== btn.dataset.id);
-        saveState(); renderPapers();
+        saveState();
+        renderPapers();
       }
     });
   });
 }
+
+// Paper filter buttons
+document.querySelectorAll('#paperFilters .filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#paperFilters .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    paperFilter = btn.dataset.paperfilter || 'all';
+    renderPapers();
+  });
+});
 
 document.getElementById('addPaperBtn').addEventListener('click', () => {
   document.getElementById('paperName').value = '';
@@ -879,6 +1310,12 @@ document.getElementById('savePaperBtn').addEventListener('click', () => {
 // --- TASKS ---
 let taskPriorityFilter = '';
 function renderTasks() {
+  const statsSub = document.getElementById('taskStatsSub');
+  const pendingCount = state.tasks.filter(t => !t.done).length;
+  if (statsSub) {
+    statsSub.textContent = `${pendingCount} pending task${pendingCount === 1 ? '' : 's'}`;
+  }
+
   let tasks = [...state.tasks];
   if (taskPriorityFilter) tasks = tasks.filter(t => t.priority === taskPriorityFilter);
   tasks.sort((a,b) => {
@@ -892,7 +1329,7 @@ function renderTasks() {
     const subj = getSubjectById(t.subjectId);
     const color = subj ? subj.color : '#6366f1';
     return `<div class="item-card ${t.done ? 'done' : ''}">
-      <div class="item-check ${t.done ? 'checked' : ''}" data-id="${t.id}" data-type="task">
+      <div class="item-check ${t.done ? 'checked' : ''}" data-id="${t.id}" data-type="task" title="Click to toggle done">
         ${t.done ? '✓' : ''}
       </div>
       <div class="item-info">
@@ -900,23 +1337,47 @@ function renderTasks() {
         <div class="item-sub" style="color:${color}">${subj ? subj.code : '—'}${t.due ? ' · Due: ' + t.due : ''}</div>
       </div>
       <span class="item-badge badge-${t.priority}">${t.priority}</span>
-      <button class="item-del-btn" data-id="${t.id}">🗑</button>
+      <button class="item-del-btn" data-id="${t.id}" title="Delete task">🗑</button>
     </div>`;
   }).join('');
 
   list.querySelectorAll('.item-check').forEach(el => {
     el.addEventListener('click', () => {
       const task = state.tasks.find(t => t.id === el.dataset.id);
-      if (task) { task.done = !task.done; saveState(); renderTasks(); renderDashboard(); }
+      if (task) {
+        task.done = !task.done;
+        saveState();
+        renderTasks();
+        renderDashboard();
+        if (currentView === 'performance') renderPerformance();
+      }
     });
   });
   list.querySelectorAll('.item-del-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (confirm('Delete this task?')) {
         state.tasks = state.tasks.filter(t => t.id !== btn.dataset.id);
-        saveState(); renderTasks(); renderDashboard();
+        saveState();
+        renderTasks();
+        renderDashboard();
+        if (currentView === 'performance') renderPerformance();
       }
     });
+  });
+}
+
+const clearDoneBtn = document.getElementById('clearDoneTasksBtn');
+if (clearDoneBtn) {
+  clearDoneBtn.addEventListener('click', () => {
+    const doneCount = state.tasks.filter(t => t.done).length;
+    if (!doneCount) { showToast('No completed tasks to clear'); return; }
+    if (confirm(`Remove ${doneCount} completed task${doneCount > 1 ? 's' : ''}?`)) {
+      state.tasks = state.tasks.filter(t => !t.done);
+      saveState();
+      renderTasks();
+      renderDashboard();
+      showToast(`🧹 Cleared ${doneCount} completed tasks`);
+    }
   });
 }
 
@@ -1149,15 +1610,27 @@ function renderStreakDisplay() {
 function renderWeeks52() {
   const grid = document.getElementById('weeksGrid');
   const currentWeek = getCurrentWeek();
+  const completedWeeks = state.weeks.filter(w => w.completed).length;
+  const elapsedPct = Math.min(100, Math.round((currentWeek / 52) * 100));
+
+  const wrmText = document.getElementById('wrmText');
+  const wrmFill = document.getElementById('wrmFill');
+  if (wrmText) {
+    wrmText.textContent = `Week ${currentWeek} of 52 (${elapsedPct}% of Year Elapsed) • ${completedWeeks} Completed`;
+  }
+  if (wrmFill) {
+    wrmFill.style.width = `${elapsedPct}%`;
+  }
+
   grid.innerHTML = state.weeks.map(w => {
     const milestoneIcons = { exam:'📝', revision:'🔄', papers:'📄', important:'⭐' };
     const icon = milestoneIcons[w.milestone] || '';
     const isCurrent = w.week === currentWeek;
     return `<div class="week-card ${w.completed?'completed':''} ${w.milestone?'milestone-'+w.milestone:''} ${isCurrent?'current-week':''}"
-              data-week="${w.week}">
+              data-week="${w.week}" title="Week ${w.week}${isCurrent ? ' (Current Week)' : ''}${w.goal ? ': ' + w.goal : ''}">
       ${icon ? `<div class="week-milestone-icon">${icon}</div>` : ''}
       <div class="week-num">${w.week}</div>
-      <div class="week-goal-text">${w.goal || (isCurrent ? '← Now' : '')}</div>
+      <div class="week-goal-text">${w.goal || (isCurrent ? '📍 Current' : '')}</div>
       ${w.completed ? '<div class="week-check">✅</div>' : ''}
     </div>`;
   }).join('');
@@ -1198,7 +1671,16 @@ function renderSubjects() {
     grid.innerHTML = '<p class="empty-msg" style="grid-column:1/-1">No subjects added yet.</p>';
     return;
   }
-  grid.innerHTML = state.subjects.map(s => `
+  grid.innerHTML = state.subjects.map(s => {
+    const events = state.events.filter(e => e.subjectId === s.id);
+    let doneMins = 0;
+    events.filter(e => e.status === 'done').forEach(e => {
+      doneMins += timeToMinutes(e.end) - timeToMinutes(e.start);
+    });
+    const doneHrs = (doneMins / 60).toFixed(1);
+    const papersCount = state.papers.filter(p => p.subjectId === s.id).length;
+
+    return `
     <div class="subject-card" style="border-left-color:${s.color}">
       <div class="subj-card-top">
         <div>
@@ -1207,19 +1689,25 @@ function renderSubjects() {
           ${s.teacher ? `<div class="subj-teacher">👨‍🏫 ${s.teacher}</div>` : ''}
         </div>
         <div class="subj-card-actions">
-          <button class="icon-btn" data-id="${s.id}" data-action="edit" title="Edit">✎</button>
-          <button class="icon-btn" data-id="${s.id}" data-action="delete" title="Delete">🗑</button>
+          <button class="icon-btn" data-id="${s.id}" data-action="edit" title="Edit Subject">✎</button>
+          <button class="icon-btn" data-id="${s.id}" data-action="delete" title="Delete Subject">🗑</button>
         </div>
       </div>
+      <div class="subj-metrics">
+        <div class="subj-metric-pill">📅 ${events.length} Sessions</div>
+        <div class="subj-metric-pill">⏱️ ${doneHrs}h Studied</div>
+        <div class="subj-metric-pill">📄 ${papersCount} Papers</div>
+      </div>
       <div class="subj-progress-label">
-        <span>Syllabus Progress</span>
+        <span>Syllabus Coverage</span>
         <span>${s.progress}%</span>
       </div>
       <div class="subj-progress-bar">
         <div class="subj-progress-fill" style="width:${s.progress}%;background:${s.color}"></div>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   grid.querySelectorAll('.icon-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1524,8 +2012,6 @@ document.getElementById('sidebarToggle').addEventListener('click', () => {
 // ===================== QUICK ACTIONS =====================
 document.getElementById('quickAddSession').addEventListener('click', () => {
   openAddEventModal();
-  openModal('eventModal');
-  populateEventSubjects();
 });
 document.getElementById('quickStartPomodoro').addEventListener('click', () => {
   document.getElementById('focusWidget').classList.add('open');
@@ -1626,6 +2112,29 @@ function init() {
     if (currentView === 'dashboard') drawMiniChart();
     if (currentView === 'performance') { drawDailyChart(); drawSubjectChart(); }
   });
+
+  initSplashScreen();
+}
+
+function initSplashScreen() {
+  const splash = document.getElementById('appSplash');
+  if (!splash) return;
+
+  let dismissed = false;
+  const dismiss = () => {
+    if (dismissed) return;
+    dismissed = true;
+    splash.classList.add('fade-out');
+    setTimeout(() => {
+      splash.style.display = 'none';
+    }, 450);
+  };
+
+  // Auto dismiss after progress bar finishes smoothly
+  setTimeout(dismiss, 1350);
+
+  // Fast skip on click or tap
+  splash.addEventListener('click', dismiss);
 }
 
 init();
